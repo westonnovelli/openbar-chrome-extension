@@ -1,0 +1,51 @@
+<!doctype html>
+<!--
+ This page is shown when the extension button is clicked, because the
+ "browser_action" field in manifest.json contains the "default_popup" key with
+ value "popup.html".
+ -->
+<html>
+  <head>
+    <title>openBAR Search</title>
+    <script src="jquery-1.11.3.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <!-- <link rel="stylesheet" type="text/css" href="materialize.min.css"> -->
+    <!-- <script src="materialize.min.js"></script> -->
+    <link rel="stylesheet" type="text/css" href="bootstrap.css">
+    <script src="bootstrap.js"></script>
+
+
+    <!--
+      - JavaScript and HTML must be in separate files: see our Content Security
+      - Policy documentation[1] for details and explanation.
+      -
+      - [1]: https://developer.chrome.com/extensions/contentSecurityPolicy
+     -->
+    <script src="openbar.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row center">
+        <a href="127.0.0.1:8000" style="letter-spacing:2px">open<b>bar</b></a>
+      </div>
+      <div class="input-group">
+        <div class="input-group-btn">
+          <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <span class="glyphicon glyphicon-menu-hamburger" aria-hidden="true"></span>
+          </button>
+          <!--Dropdown-->
+          <ul class="dropdown-menu nav nav-list" id="folders">
+
+          </ul>
+      </div>
+          <input type="text" class="form-control" aria-label="..." placeholder="Have a drink?" id="search" for="search" name="input">
+          <span class="input-group-btn">
+              <button class="btn btn-default" type="submit" id="button"><span class="glyphicon glyphicon-search" aria-hidden="true"></span></button>
+          </span>
+      </div>
+      <div id="results"></div>
+    </div>
+
+
+  </body>
+</html>

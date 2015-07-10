@@ -1,0 +1,17 @@
+{
+  "manifest_version": 2,
+
+  "name": "openBAR search",
+  "description": "This is an extension of the openBAR search",
+  "version": "0.1",
+
+  "browser_action": {
+    "default_icon": "openbar_logo.png",
+    "default_popup": "openbar.html",
+    "default_title": "openBAR, by OpenStax"
+  },
+  "permissions": [
+    "activeTab",
+    "http://localhost/*"
+  ]
+}
