@@ -12,6 +12,6 @@
   },
   "permissions": [
     "activeTab",
-    "http://localhost/*"
+    "http://localhost:8000/*"
   ]
 }

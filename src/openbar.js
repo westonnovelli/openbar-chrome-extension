@@ -1,91 +1,18 @@
 // Copyright (c) 2014 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-
-/**
- * Get the current URL.
- *
- * @param {function(string)} callback - called when the URL of the current tab
- *   is found.
- */
 function getCurrentTabUrl(callback) {
-  // Query filter to be passed to chrome.tabs.query - see
-  // https://developer.chrome.com/extensions/tabs#method-query
   var queryInfo = {
     active: true,
     currentWindow: true
   };
 
   chrome.tabs.query(queryInfo, function(tabs) {
-    // chrome.tabs.query invokes the callback with a list of tabs that match the
-    // query. When the popup is opened, there is certainly a window and at least
-    // one tab, so we can safely assume that |tabs| is a non-empty array.
-    // A window can only have one active tab at a time, so the array consists of
-    // exactly one tab.
     var tab = tabs[0];
-
-    // A tab is a plain object that provides information about the tab.
-    // See https://developer.chrome.com/extensions/tabs#type-Tab
     var url = tab.url;
-
-    // tab.url is only available if the "activeTab" permission is declared.
-    // If you want to see the URL of other tabs (e.g. after removing active:true
-    // from |queryInfo|), then the "tabs" permission is required to see their
-    // "url" properties.
     console.assert(typeof url == 'string', 'tab.url should be a string');
-
     callback(url);
   });
-
-  // Most methods of the Chrome extension APIs are asynchronous. This means that
-  // you CANNOT do something like this:
-  //
-  // var url;
-  // chrome.tabs.query(queryInfo, function(tabs) {
-  //   url = tabs[0].url;
-  // });
-  // alert(url); // Shows "undefined", because chrome.tabs.query is async.
-}
-
-/**
- * @param {string} searchTerm - Search term for Google Image search.
- * @param {function(string,number,number)} callback - Called when an image has
- *   been found. The callback gets the URL, width and height of the image.
- * @param {function(string)} errorCallback - Called when the image is not found.
- *   The callback gets a string that describes the failure reason.
- */
-function getImageUrl(searchTerm, callback, errorCallback) {
-  // Google image search - 100 searches per day.
-  // https://developers.google.com/image-search/
-  var searchUrl = 'https://ajax.googleapis.com/ajax/services/search/images' +
-    '?v=1.0&q=' + encodeURIComponent(searchTerm);
-  var x = new XMLHttpRequest();
-  x.open('GET', searchUrl);
-  // The Google image search API responds with JSON, so let Chrome parse it.
-  x.responseType = 'json';
-  x.onload = function() {
-    // Parse and process the response from Google Image Search.
-    var response = x.response;
-    if (!response || !response.responseData || !response.responseData.results ||
-        response.responseData.results.length === 0) {
-      errorCallback('No response from Google Image search!');
-      return;
-    }
-    var firstResult = response.responseData.results[0];
-    // Take the thumbnail instead of the full image to get an approximately
-    // consistent image size.
-    var imageUrl = firstResult.tbUrl;
-    var width = parseInt(firstResult.tbWidth);
-    var height = parseInt(firstResult.tbHeight);
-    console.assert(
-        typeof imageUrl == 'string' && !isNaN(width) && !isNaN(height),
-        'Unexpected respose from the Google Image Search API!');
-    callback(imageUrl, width, height);
-  };
-  x.onerror = function() {
-    errorCallback('Network error.');
-  };
-  x.send();
 }
 
 function renderStatus(statusText) {
@@ -97,43 +24,40 @@ function search_page() {
   xhr.open("GET", "http://localhost:8000/voodoo/search_page", true);
   xhr.onreadystatechange = function() {
     if (xhr.readyState == 4) {
-      // innerText does not let the attacker inject HTML elements.
-      document.getElementById("status").innerText = xhr.responseText;
+      document.getElementById("content").innerHtml = xhr.responseText;
     }
   }
   xhr.send();
 }
 
-function send_request() {
+function search() {
   var xhr = new XMLHttpRequest();
   xhr.open("POST", "http://localhost:8000/search/", true);
   xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
   xhr.onreadystatechange = function() {
     if (xhr.readyState == 4) {
-      // innerText does not let the attacker inject HTML elements.
       document.getElementById("results").innerHTML = xhr.responseText;
+      $('.header').html("");
+      set_folder_manage_actions();
+      set_followable_links();
     }
   }
-  console.log(document.getElementById("search").value)
-  xhr.send("source=extension&input=" + document.getElementById("search").value);
-}
-
-function search() {
-
+  xhr.send("source=extension&input=" + document.getElementById("searchbar").value);
 }
 
 function get_folders() {
   var xhr = new XMLHttpRequest();
-  xhr.open("GET", "http://localhost:8000/extension/folders?user=Bob", true);
+  xhr.open("GET", "http://localhost:8000/extension/folders?user=Geoff", true);
   xhr.onreadystatechange = function() {
     if (xhr.readyState == 4) {
       // innerText does not let the attacker inject HTML elements.
       document.getElementById("folders").innerHTML = xhr.responseText;
       set_menu();
+      set_followable_links();
+      set_click_handlers();
     }
   }
   xhr.send();
-
 }
 
 function set_menu() {
@@ -145,13 +69,153 @@ function set_menu() {
   })
 }
 
+function adj(id, direction, amount) {
+  url = "http://localhost:8000/set_complexity_score";
+  if (direction == "greater") {
+    url = "http://localhost:8000/increase_complexity_score";
+  } else if (direction == "less") {
+    url = "http://localhost:8000/decrease_complexity_score";
+  }
+  $.ajax({
+    url: url,
+    data: {id: id, amount: amount},
+    success: function(result){
+      console.log(result);
+    }
+  });
+}
+function review(id) {
+  $.ajax({
+    url: "http://localhost:8000/reviewed_link/",
+    data: {id: id},
+    success: function(result){
+      $("#links_followed").html(result);
+      set_followed_links_dropdown();
+    }
+  });
+}
+function decrease_complexity(id) {
+  adj(id, "less", 1);
+}
+function increase_complexity(id) {
+  adj(id, "greater", 1);
+}
+function update_indicator() {
+  $(".indicator").toggleClass("glyphicon-folder-close");
+  $(".indicator").toggleClass("glyphicon-folder-open");
+}
+function set_click_handlers() {
+  $('.folder').on('click', function(event) {
+    update_indicator();
+  });
+  set_menu();
+  set_folder_manage_actions();
+}
+function get_user_complexity_score() {
+  score = "";
+  $.ajax({
+    url: "http://localhost:8000/get_user_complexity_score/",
+    success: function(result) {
+      $("#user_cs").html(result);
+      score = result;
+    }
+  });
+  return score;
+}
+
+function set_tooltips() {
+  $(function () { $("[data-toggle='tooltip']").tooltip(); });
+  $(function () { $("[data-toggle='popover']").popover({html: true}); });
+}
+
+function set_review_actions() {
+  $('.adjust-just-right').on('click', function(event) {
+    review($(this).parent().data("followed-link-id"));
+  });
+  $('.adjust-less').on('click', function(event) {
+    decrease_complexity($(this).parent().data("query-id"));
+    review($(this).parent().data("followed-link-id"));
+  });
+  $('.adjust-more').on('click', function(event) {
+    increase_complexity($(this).parent().data("query-id"));
+    review($(this).parent().data("followed-link-id"));
+  });
+}
+
+function set_folder_dropdown() {
+  $('button.openbar-dropdown-folder').on('click', function (event) {
+    $(".openbar-dropdown-folder").toggleClass('open');
+  });
+  $('body').on('click', function (e) {
+    if (!$('.openbar-dropdown-menu').is(e.target)
+        && $('.openbar-dropdown-menu').has(e.target).length === 0
+        && $('.open').has(e.target).length === 0) {
+          $('.openbar-dropdown').removeClass('open');
+        }
+  });
+}
+
+function set_followed_links_dropdown() {
+  $('.openbar-dropdown-followed-links').on('click', function(event) {
+    $(".openbar-dropdown-followed-links").toggleClass('open');
+    console.log("clicked links");
+  });
+  set_review_actions();
+}
+
+function get_links_followed() {
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "http://localhost:8000/get_followed_links/", true);
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState == 4) {
+      document.getElementById("links_followed").innerHTML = xhr.responseText;
+      set_followed_links_dropdown();
+    }
+  }
+  xhr.send();
+}
+
+function set_followable_links() {
+  $(".followable-link").on('click', function(event) {
+        $.ajax({
+            url: "http://localhost:8000/follow_link/",
+            data: {"query": $(this).data("query-id")},
+            success: function(result) {
+                $("#links_followed").html(result);
+                set_followed_links_dropdown();
+            }
+        });
+    });
+}
+
+function set_folder_manage_actions() {
+  $('.action').on('click', function(event) {
+    if ($(this).data('method') == 'remove_link') {
+      remove_link($(this).data('query-id'), $(this).data('parent-id'))
+    } else if ($(this).data('method') == 'save_link') {
+      save_link($(this).data('query-id'), $(this).data('parent-id'))
+    }
+  });
+}
+
+function set_focus() {
+  console.log($('#searchbar'))
+  $('#searchbar').focus();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById("button").addEventListener("click", send_request);
-  document.getElementById("search").addEventListener('keypress', function (e) {
+  set_tooltips();
+  get_links_followed();
+  set_click_handlers();
+  get_user_complexity_score();
+  get_folders();
+  set_folder_dropdown();
+  set_focus();
+  document.getElementById("search-btn").addEventListener("click", search);
+  document.getElementById("searchbar").addEventListener('keypress', function (e) {
       var key = e.which || e.keyCode;
       if (key === 13) { // 13 is enter
-        send_request();
+        search();
       }
   });
-  get_folders();
 });

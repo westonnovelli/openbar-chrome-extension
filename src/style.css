@@ -1,10 +1,13 @@
 body {
+	padding-top: 40px;
+	background-color: #dfdfdf;
   width: 800px;
-  background-color: #77B140;
 }
+
 ul > li {
     margin-left: 10px;
 }
+
 .folder {
   color: black;
 }
@@ -52,8 +55,9 @@ ul > li {
 
 .display-box {
 	background-color: white;
-	padding: 50px;
+	padding: 30px;
 	border-radius: 15px;
+	box-shadow: 2px 2px 5px #444;
 }
 
 .logo {
@@ -76,11 +80,11 @@ h4 {
     padding: .2em .4em;
     margin: .8em 0 .2em;
     line-height: 1.5;
-  }
+}
 
 a {
  	text-decoration: none;
- }
+}
 
 .dropdown-menu li {
  	line-height: 120%;
@@ -120,4 +124,12 @@ a {
 		min-width: 240px !important;
 		overflow-x: hidden;
 	}
+}
+
+.query {
+	text-transform: none; padding: 5px 70px 0px 10px;
+}
+
+#results {
+  padding-top: 20px;
 }
