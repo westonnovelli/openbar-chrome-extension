@@ -217,8 +217,9 @@ function set_username() {
 }
 
 function set_focus() {
-  console.log($('#searchbar'))
-  $('#searchbar').focus();
+  setTimeout(function(){
+    $('#searchbar').focus();
+  }, 100);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
