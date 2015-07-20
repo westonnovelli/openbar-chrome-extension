@@ -47,7 +47,7 @@ function search() {
 
 function get_folders() {
   var xhr = new XMLHttpRequest();
-  xhr.open("GET", "http://localhost:8000/extension/folders?user=Geoff", true);
+  xhr.open("GET", "http://localhost:8000/extension/folders", true);
   xhr.onreadystatechange = function() {
     if (xhr.readyState == 4) {
       // innerText does not let the attacker inject HTML elements.
@@ -198,6 +198,24 @@ function set_folder_manage_actions() {
   });
 }
 
+function set_greeting() {
+  $.ajax({
+      url: "http://localhost:8000/greeting/",
+      success: function(result) {
+        $('#greeting').text(result);
+      }
+  });
+}
+
+function set_username() {
+  $.ajax({
+      url: "http://localhost:8000/username/",
+      success: function(result) {
+        $('#username').text(result);
+      }
+  });
+}
+
 function set_focus() {
   console.log($('#searchbar'))
   $('#searchbar').focus();
@@ -210,6 +228,8 @@ document.addEventListener('DOMContentLoaded', function() {
   get_user_complexity_score();
   get_folders();
   set_folder_dropdown();
+  set_greeting();
+  set_username();
   set_focus();
   document.getElementById("search-btn").addEventListener("click", search);
   document.getElementById("searchbar").addEventListener('keypress', function (e) {
